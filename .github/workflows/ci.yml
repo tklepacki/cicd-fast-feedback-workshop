@@ -1,13 +1,5 @@
 name: CI
 
-# The starting point of the workshop.
-#
-# Everything below works: it checks out the code, installs dependencies and runs all the
-# tests. It is also slow, wasteful and tells you almost nothing until it finishes.
-# Every exercise in docs/zadania/ takes one problem from this file and fixes it.
-#
-# Do not "improve" this file before EXERCISE 01. Measuring it as it stands is the exercise.
-
 on:
   push:
     branches: [main]
@@ -15,9 +7,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# One run per branch. A newer push cancels the run already in flight, because its result
-# describes code nobody is going to merge. On a free account the 20 concurrent job limit
-# is shared across the whole account, so stale runs queue behind your own work.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -34,21 +23,51 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+      # The version goes into the cache key. Without it, bumping @playwright/test would be
+      # served stale browsers from cache and fail in ways that point nowhere near the cause.
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: UI tests
-        run: npm run test:ui
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # System libraries live outside ~/.cache/ms-playwright, so a cache hit still needs them.
+      - name: Install browser system dependencies
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # Cheapest checks first. Each can fail the run before anything expensive starts.
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm run test:unit
 
       - name: API tests
         run: npm run test:api
 
-      - name: Unit tests
-        run: npm run test:unit
+      - name: UI tests
+        run: npm run test:ui
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
