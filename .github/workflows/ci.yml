@@ -10,6 +10,17 @@ name: CI
 
 on:
   push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# One run per branch. A newer push cancels the run already in flight, because its result
+# describes code nobody is going to merge. On a free account the 20 concurrent job limit
+# is shared across the whole account, so stale runs queue behind your own work.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
