@@ -1,16 +1,25 @@
 name: CI
 
-# MEASUREMENT VARIANT - not the workshop baseline.
+# Variant: the UI job runs inside a pinned Playwright image.
 #
-# Identical to the baseline in every respect but one: the job runs inside the official
-# Playwright image, which ships the browsers, so `npx playwright install` is gone.
+# The reason is reproducibility, not speed.
 #
-# The question being measured: does pulling a ~2 GB image cost less than the 52 seconds
-# the baseline spends installing browsers? Assuming either way would be guessing.
+# `npx playwright install` fetches a browser matching the installed @playwright/test, but
+# the system libraries, fonts and codecs around it come from `ubuntu-latest` - a label
+# GitHub moves underneath you. When the runner image rolls from 22.04 to 24.04 and font
+# rendering shifts, the pipeline turns red with no commit to blame. That is the worst kind
+# of failure: nobody changed anything, and no retry will fix it, because the cause is
+# environment drift rather than test code.
 #
-# Running the job in the container also removes the networking problem a separate browser
-# server would introduce: the application under test and the browser share one localhost.
-
+# A pinned tag freezes the whole set - browser, OS, fonts, system libraries. The same bytes
+# this month and in six months. For visual comparison, where one pixel of font rendering
+# decides pass or fail, this is a precondition rather than a convenience.
+#
+# Running the job in the container also keeps the application under test and the browser
+# on the same localhost, which a separate browser server would not.
+#
+# Whether this is also faster than the 52s the baseline spends installing browsers depends
+# on the image pull, and is secondary.
 on:
   push:
 
