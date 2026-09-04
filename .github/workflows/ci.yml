@@ -37,6 +37,45 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
 
+  security:
+    name: Bezpieczeństwo
+    runs-on: ubuntu-latest
+    # No `needs`: nothing here depends on a build, and a leaked credential is worth knowing
+    # about within seconds rather than after the UI suite finishes.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks scans history, not just the working tree. A secret removed in the last
+          # commit but present earlier is the common real case, and a shallow clone hides it.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Known vulnerabilities in dependencies
+        run: npm audit --audit-level=high
+
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.0/gitleaks_8.24.0_linux_x64.tar.gz \
+            | tar -xz -C /usr/local/bin gitleaks
+
+      # Two flags carry weight here.
+      #
+      # --redact: without it the tool that detects leaked secrets prints one into logs
+      # that anyone can read on a public repository.
+      #
+      # --log-opts: gitleaks scans every branch by default. With `fetch-depth: 0` that
+      # means a secret committed on any branch fails the scan on all of them - which is
+      # arguably correct for a real leak, but useless as a signal about *this* change.
+      # Scoping to the current branch answers the question the pipeline is actually asking.
+      - name: Secrets in the repository
+        run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --log-opts="--first-parent HEAD"
+
   build:
     name: Build
     runs-on: ubuntu-latest
