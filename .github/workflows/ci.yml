@@ -23,6 +23,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Co się zmieniło
+    runs-on: ubuntu-latest
+    outputs:
+      ui: ${{ steps.filter.outputs.ui }}
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # `src/shared/**` appears in both filters on purpose: cart, discount and validation
+          # logic is used by the server and the frontend alike, so a change there can break
+          # either. A filter that lets a breaking change through is worse than no filter,
+          # because it grants false confidence.
+          filters: |
+            ui:
+              - 'src/web/**'
+              - 'src/shared/**'
+              - 'tests/ui/**'
+              - 'playwright.config.ts'
+            api:
+              - 'src/server/**'
+              - 'src/shared/**'
+              - 'tests/api/**'
+              - 'playwright.config.ts'
+
   quality:
     name: Lint i typecheck
     runs-on: ubuntu-latest
@@ -148,7 +175,8 @@ jobs:
     runs-on: ubuntu-latest
     # Only a build dependency. Adding `needs: quality` would delay the test result by the
     # duration of linting without preventing anything - the merge gate handles that.
-    needs: build
+    needs: [build, changes]
+    if: needs.changes.outputs.api == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -168,9 +196,14 @@ jobs:
   test-ui:
     name: Testy UI (${{ github.event_name == 'pull_request' && 'smoke' || 'pełna regresja' }})
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, changes]
+    if: needs.changes.outputs.ui == 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          # `--only-changed` compares against git history; a shallow clone has none and the
+          # flag then quietly matches nothing at all.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
