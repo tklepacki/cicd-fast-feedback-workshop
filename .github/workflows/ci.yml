@@ -76,6 +76,42 @@ jobs:
       - name: Secrets in the repository
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --log-opts="--first-parent HEAD"
 
+  api-contract:
+    name: Kontrakt API
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Two revisions are compared, so the full history has to be present.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Contract from the base branch
+        run: |
+          git checkout "origin/${{ github.base_ref }}" -- src/server/openapi.ts
+          npm run build:server
+          node scripts/dump-openapi.mjs /tmp/openapi-base.json
+          git checkout HEAD -- src/server/openapi.ts
+
+      - name: Contract from the pull request
+        run: |
+          npm run build:server
+          node scripts/dump-openapi.mjs /tmp/openapi-head.json
+
+      - name: Detect breaking changes
+        uses: oasdiff/oasdiff-action/breaking@main
+        with:
+          base: /tmp/openapi-base.json
+          revision: /tmp/openapi-head.json
+          fail-on: ERR
+
   build:
     name: Build
     runs-on: ubuntu-latest
