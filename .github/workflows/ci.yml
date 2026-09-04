@@ -49,6 +49,14 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          # Needed for minutes, not months. The default retention is 90 days.
+          retention-days: 1
+
   test-api:
     name: Testy API
     runs-on: ubuntu-latest
@@ -62,7 +70,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run build
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
       - run: npm run test:api
 
   test-ui:
@@ -96,7 +110,12 @@ jobs:
         if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - run: npm run build
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
       - run: npm run test:ui
 
       - uses: actions/upload-artifact@v4

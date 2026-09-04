@@ -22,7 +22,9 @@
     "test:ui": "playwright test --project=ui-chromium",
     "test:smoke": "playwright test --project=ui-chromium --grep @smoke",
     "verify": "npm run lint && npm run typecheck && npm run build && npm run test:unit",
-    "openapi:dump": "node scripts/dump-openapi.mjs"
+    "openapi:dump": "node scripts/dump-openapi.mjs",
+    "test:ui:local": "npm run build && playwright test --project=ui-chromium",
+    "test:api:local": "npm run build && playwright test --project=api"
   },
   "dependencies": {
     "express": "^4.22.2",

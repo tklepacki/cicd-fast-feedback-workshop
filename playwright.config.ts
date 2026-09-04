@@ -33,13 +33,13 @@ export default defineConfig({
   },
 
   // The server starts only when no external environment is given.
-  // Note that `npm run build` lives here, which means the application build is
-  // **hidden inside the test step**: a compilation error surfaces as a test failure.
-  // We untangle that in EXERCISES 03 and 05.
+  // The build is no longer here: the application is built once, in its own job, and
+  // arrives as an artifact. A compilation error now fails the build job, where it belongs,
+  // instead of masquerading as a broken test.
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'npm run build && npm start',
+        command: 'npm start',
         url: 'http://localhost:3000/api/health',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
