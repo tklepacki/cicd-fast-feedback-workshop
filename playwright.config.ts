@@ -26,7 +26,12 @@ export default defineConfig({
   // that is a signal, not a success.
   retries: process.env.CI ? 2 : 0,
 
-  reporter: [['list'], ['html', { open: 'never' }]],
+  // `blob` is an intermediate format built to be merged. Two HTML reports cannot be
+  // combined in any meaningful way, which is why sharding quietly breaks reporting
+  // unless this is changed alongside it.
+  reporter: process.env.CI
+    ? [['blob'], ['github']]
+    : [['list'], ['html', { open: 'never' }]],
 
   use: {
     baseURL,
