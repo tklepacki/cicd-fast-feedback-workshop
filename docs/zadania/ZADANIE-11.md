@@ -1,143 +1,123 @@
-# ZADANIE 11 — Matrix jako mechanizm ogólny
+# ZADANIE 11 — Matrix, który liczy sam siebie
 
 ## Cel
 
-Zobaczyć, że `matrix` to nie jest „mechanizm do shardowania". W ZADANIU 10 użyliśmy go
-do podziału jednego zestawu na maszyny — teraz użyjemy tego samego narzędzia do czegoś
-zupełnie innego, i w dodatku **z drugim wymiarem**.
+Zobaczyć `matrix` jako **mechanizm ogólny**, a nie synonim shardowania, i uzależnić liczbę
+shardów od tego, co pipeline właśnie robi.
 
 ## Dlaczego to boli
 
-Testy UI uruchamiamy wyłącznie w Chromium. Aplikacja działa w trzech silnikach i nikt
-nie sprawdza dwóch pozostałych.
+Po ZADANIU 10 testy UI dzielą się na cztery shardy — **zawsze cztery**, niezależnie od tego,
+czy uruchamiamy pięć testów smoke, czy pełną regresję.
 
-Naturalny odruch to uruchomić wszystko wszędzie. To jednak **potroiłoby** liczbę jobów
-i zużycie minut, dając informację, która na pull requeście prawie nigdy nie jest potrzebna:
-różnice między silnikami to rzadka klasa błędów, a nie codzienność.
+Na pull requeście to jest strata. Pięć testów rozdzielonych na cztery maszyny oznacza,
+że każda z nich spędza więcej czasu na starcie — checkout, `npm ci`, pobranie artefaktu —
+niż na testowaniu. Płacisz za cztery maszyny, żeby uruchomić jeden test na każdej.
 
-Do tego, gdyby zostawić w warsztacie samo ZADANIE 10, wyszedłbyś z przekonaniem,
-że `matrix` **służy do** shardowania. Nie służy — shardowanie to jedno z jego zastosowań.
+Na `main`, gdzie idzie pełna regresja, cztery shardy to z kolei za mało.
+
+Liczba shardów jest wpisana na sztywno, bo `matrix` wygląda na coś, co musi być stałą listą.
+Nie musi.
 
 ## Zadanie
 
-**1. Dodaj drugi wymiar `browser`** do istniejącego matrixa z shardami.
+**1. Uzależnij liczbę shardów od zdarzenia.** Dwa shardy dla `pull_request`, osiem dla reszty.
 
-**2. Niech wymiar będzie zależny od zdarzenia:** na pull requeście tylko `chromium`,
-na `main` wszystkie trzy silniki. Użyj `fromJSON`.
+Kluczem jest `fromJSON`: matrixa nie da się policzyć wyrażeniem, ale **można mu podać
+tablicę JSON zbudowaną przez wyrażenie**.
 
-**3. Instaluj tylko potrzebną przeglądarkę** — `--with-deps ${{ matrix.browser }}`,
-nie wszystkie trzy.
+**2. Zadbaj o mianownik.** `--shard=3/4` przestaje mieć sens, gdy shardów jest osiem.
+Liczba w mianowniku musi zmieniać się razem z rozmiarem matrixa.
 
-**4. Policz joby.** Ile ich jest na PR-ze, a ile na `main`? Porównaj z limitem
-**20 równoległych jobów** na koncie Free.
+**3. Zadbaj o nazwy artefaktów**, żeby osiem shardów nie zderzyło się nazwami.
 
-**5. Wypróbuj `exclude`.** Wyłącz jedną kombinację — na przykład WebKit dla sharda 4 —
-i zobacz, jak zmienia się liczba jobów.
+**4. Policz joby.** Przy ośmiu shardach sprawdź w zakładce Actions, ile jobów startuje
+jednocześnie i ile zostaje do limitu **20 na koncie**.
+
+**5. Zmierz oba tryby.** Odpal raz jako PR, raz na `main`, i porównaj czas oraz zużycie minut.
 
 ## Kryteria akceptacji
 
-- [ ] matrix ma dwa wymiary: `browser` i `shard`
-- [ ] PR uruchamia 4 joby UI, `main` — 12
-- [ ] instalowana jest wyłącznie przeglądarka z bieżącej kombinacji
-- [ ] nazwa joba mówi, który silnik i który shard
-- [ ] potrafisz policzyć, ile jobów zmieści się w limicie konta
+- [ ] pull request uruchamia **dwa** shardy, push na `main` — **osiem**
+- [ ] mianownik w `--shard` odpowiada rzeczywistej liczbie shardów w obu trybach
+- [ ] artefakty z ośmiu shardów nie kolidują nazwami
+- [ ] w nazwie joba widać, który to shard i z ilu
+- [ ] policzone, ile jobów działa równolegle w trybie `main`
 
 ## Zmierz
 
-| Zdarzenie | Liczba jobów UI | Wszystkie joby w przebiegu | Limit |
-|---|---|---|---|
-| `pull_request` | ? | ? | 20 |
-| `push` do `main` | ? | ? | 20 |
+| Co | PR (2 shardy) | main (8 shardów) |
+|---|---|---|
+| Czas najdłuższego sharda | ? | ? |
+| Czas całego etapu UI | ? | ? |
+| Suma zużytych minut | ? | ? |
+| Jobów równolegle w szczycie | ? | ? |
 
 <details>
 <summary><b>Rozwiązanie</b></summary>
 
 ```yaml
   test-ui:
-    name: UI ${{ matrix.browser }} (shard ${{ matrix.shard }}/4)
+    name: UI ${{ github.event_name == 'pull_request' && 2 || 8 }} × ${{ matrix.shard }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, changes]
+    if: needs.changes.outputs.ui == 'true'
     strategy:
       fail-fast: false
       matrix:
-        # A full cross-browser sweep on every pull request is waste, not diligence:
-        # engine differences are a rare class of defect, and the review loop pays for
-        # the check every single time. Main carries the cost once per merge instead.
-        browser: >-
+        # A matrix cannot be computed with an expression, but it can be handed a JSON
+        # array built by one. That is the whole trick.
+        shard: >-
           ${{ fromJSON(github.event_name == 'pull_request'
-              && '["chromium"]'
-              || '["chromium","firefox","webkit"]') }}
-        shard: [1, 2, 3, 4]
-
+              && '[1,2]'
+              || '[1,2,3,4,5,6,7,8]') }}
     steps:
       # ...
-      - name: Install browser
-        run: npx playwright install --with-deps ${{ matrix.browser }}
-
       - name: UI tests
-        run: npx playwright test --project=ui-${{ matrix.browser }} --shard=${{ matrix.shard }}/4
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          # Two dimensions now, so both belong in the name.
-          name: blob-report-${{ matrix.browser }}-${{ matrix.shard }}
-          path: blob-report/
+        run: >-
+          npx playwright test --project=ui-chromium
+          --shard=${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 2 || 8 }}
+          ${{ env.GREP }}
 ```
 
-### Rachunek jobów
+### Dlaczego `fromJSON`
 
-| Zdarzenie | UI | Pozostałe | Razem | Limit |
-|---|---|---|---|---|
-| `pull_request` | 1 × 4 = **4** | ~5 | **9** | 20 |
-| `push` do `main` | 3 × 4 = **12** | ~5 | **17** | 20 |
+`matrix.shard` musi być listą. Wyrażenie `${{ ... }}` zwraca **napis**, więc bez konwersji
+GitHub dostałby jeden element o wartości `"[1,2]"` zamiast dwóch shardów.
+`fromJSON` zamienia ten napis z powrotem w tablicę.
 
-Siedemnaście z dwudziestu. **Mieści się, ale ciasno.** Wystarczy, że w tym samym momencie
-biegnie drugi przebieg — na innym repozytorium tego samego konta — i zaczyna się kolejkowanie.
+### Mianownik w dwóch miejscach
 
-To jest sedno tego zadania: **matrix skaluje się multiplikatywnie**. Dodanie trzeciego wymiaru
-o trzech wartościach dałoby 36 jobów UI i przekroczyło limit dwukrotnie.
-
-### `include` i `exclude`
+Wyrażenie `github.event_name == 'pull_request' && 2 || 8` powtarza się w nazwie joba
+i w poleceniu. To zapach — i słusznie. Można je wynieść do `env` na poziomie workflow:
 
 ```yaml
-    strategy:
-      matrix:
-        browser: [chromium, firefox, webkit]
-        shard: [1, 2, 3, 4]
-        exclude:
-          # WebKit is the slowest engine here; trimming one combination is a cheap
-          # way to stay under the concurrency ceiling.
-          - browser: webkit
-            shard: 4
-        include:
-          # `include` can also add a combination that the product would not generate.
-          - browser: chromium
-            shard: 1
-            record-trace: true
+env:
+  SHARD_TOTAL: ${{ github.event_name == 'pull_request' && 2 || 8 }}
 ```
 
 </details>
 
 ## Pułapki
 
-**`fromJSON` wymaga poprawnego JSON-a w stringu.** Pojedyncze cudzysłowy w środku wyrażenia,
-podwójne w JSON-ie. Literówka daje komunikat, który nie wskazuje `fromJSON` jako źródła.
+**Matrix mnoży.** Każdy dodany wymiar mnoży liczbę jobów przez swoją długość, a nie dodaje.
+Dwa wymiary po cztery wartości to szesnaście maszyn, nie osiem. Przy limicie **20 jobów
+na koncie** — który liczy się dla wszystkich repozytoriów łącznie — łatwo o tę granicę zawadzić
+i zacząć kolejkować samemu sobie.
 
-**Matrix mnoży, nie dodaje.** Trzy przeglądarki × cztery shardy to dwanaście jobów, nie siedem.
-Przy trzech wymiarach rośnie to szybciej, niż podpowiada intuicja.
+**Mianownik rozjeżdża się z matrixem.** Zmiana listy shardów bez zmiany `--shard=x/N` daje
+najgorszy możliwy wynik: pipeline świeci na zielono, a **część testów nigdy się nie uruchomiła**.
+Nic nie pada, więc nikt nie zauważa.
 
-**Nazwa joba musi rozróżniać kombinacje.** Bez `${{ matrix.browser }}` w nazwie dwanaście
-identycznie nazwanych jobów jest nie do odczytania w UI.
-
-**Projekt Playwrighta musi istnieć.** `--project=ui-firefox` zadziała tylko, jeśli taki projekt
-jest w `playwright.config.ts`. W tym repozytorium są wszystkie trzy.
+**Więcej shardów nie zawsze znaczy szybciej.** Każdy shard płaci pełny narzut startu.
+W pewnym momencie dokładanie maszyn przestaje skracać czas, a zaczyna tylko zwiększać
+rachunek za minuty. Punkt, w którym to następuje, wyznacza się pomiarem, nie intuicją.
 
 ## Do dyskusji
 
-- Ile realnych błędów w Twoim projekcie wynikało z różnic między silnikami? Czy uzasadniają
-  cross-browser na każdym PR-ze?
-- Matrix po wersjach Node (18/20/22) to inny klasyczny przypadek. Kiedy biblioteka go
-  potrzebuje, a kiedy aplikacja?
-- Limit 20 jobów jest na konto, nie na repozytorium. Jak to zmienia projektowanie matrixa
-  w zespole, gdzie wszyscy pracują na jednej organizacji?
+- Gdzie w Twoim projekcie liczba shardów powinna zależeć od kontekstu, a gdzie stała
+  wartość jest w porządku?
+- `fromJSON` pozwala zbudować matrixa z czegokolwiek — także z wyniku poprzedniego joba
+  przez `outputs`. Jakie zastosowania to otwiera?
+- Osiem shardów, z których każdy startuje minutę, to osiem minut narzutu na jeden przebieg.
+  Kiedy przestaje się to opłacać?
