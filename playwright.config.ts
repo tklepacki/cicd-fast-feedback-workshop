@@ -20,8 +20,11 @@ export default defineConfig({
   // cheapest optimisation in this whole pipeline, and it costs nothing in minutes.
   workers: process.env.CI ? 4 : undefined,
 
-  // No retries. Right now every flaky test is a red build - EXERCISE 12.
-  retries: 0,
+  // Retries buy time to diagnose without blocking the team. They do not fix anything:
+  // the worst case gets three times longer and the problem is hidden rather than solved.
+  // Playwright reports a test that passed on retry as "flaky", separately from "passed" -
+  // that is a signal, not a success.
+  retries: process.env.CI ? 2 : 0,
 
   reporter: [['list'], ['html', { open: 'never' }]],
 
