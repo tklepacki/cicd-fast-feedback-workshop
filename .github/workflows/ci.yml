@@ -22,10 +22,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only by default. A job that needs more says so itself, which makes the exception
+# visible in review instead of granting every job write access to the repository.
+permissions:
+  contents: read
+
 jobs:
   changes:
     name: Co się zmieniło
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       ui: ${{ steps.filter.outputs.ui }}
       api: ${{ steps.filter.outputs.api }}
@@ -53,6 +59,7 @@ jobs:
   quality:
     name: Lint i typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -62,6 +69,7 @@ jobs:
   unit:
     name: Testy jednostkowe
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -79,6 +87,7 @@ jobs:
   security:
     name: Bezpieczeństwo
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # No `needs`: nothing here depends on a build, and a leaked credential is worth knowing
     # about within seconds rather than after the UI suite finishes.
     steps:
@@ -113,6 +122,7 @@ jobs:
   api-contract:
     name: Kontrakt API
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
@@ -144,6 +154,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -160,6 +171,7 @@ jobs:
   test-api:
     name: Testy API
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Only a build dependency. Adding `needs: quality` would delay the test result by the
     # duration of linting without preventing anything - the merge gate handles that.
     needs: [build, changes]
@@ -188,6 +200,7 @@ jobs:
   test-ui:
     name: UI ${{ github.event_name == 'pull_request' && 2 || 8 }} × ${{ matrix.shard }} (${{ github.event_name == 'pull_request' && 'smoke' || 'regresja' }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [build, changes]
     if: needs.changes.outputs.ui == 'true'
     container:
@@ -281,6 +294,7 @@ jobs:
   test-ui-quarantine:
     name: Kwarantanna
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [build, changes]
     if: needs.changes.outputs.ui == 'true'
     container:
@@ -308,6 +322,7 @@ jobs:
   ui-report:
     name: Raport UI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: test-ui
     # Must run even when shards failed. A report describing a green run is the one
     # nobody needs to read.
@@ -338,6 +353,7 @@ jobs:
   test-report:
     name: Raport zbiorczy
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [unit, test-api, test-ui]
     if: always()
     permissions:
@@ -379,6 +395,7 @@ jobs:
   publish-report:
     name: Publikacja raportu
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: ui-report
     if: always()
     steps:
@@ -423,3 +440,52 @@ jobs:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
+  pipeline-status:
+    name: Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - changes
+      - quality
+      - unit
+      - security
+      - api-contract
+      - build
+      - test-api
+      - test-ui
+      - ui-report
+      - test-report
+    if: always()
+    steps:
+      # One required check instead of twelve.
+      #
+      # Branch protection needs the names of the checks it requires, and a matrix generates
+      # names that change with it - `UI 2 x 1` becomes `UI 8 x 5` the moment the event
+      # changes the shard count, and the protection rule silently stops matching anything.
+      # Aggregating into a single job whose name never changes solves that.
+      #
+      # `skipped` must count as success: exercise 09 skips jobs the change could not have
+      # broken, and treating a skip as a failure would block every pull request that does
+      # not touch the UI.
+      - name: Sprawdź wyniki
+        run: |
+          echo '${{ toJSON(needs) }}' > results.json
+          FAILED=$(node -e "
+            const r = require('./results.json');
+            const bad = Object.entries(r)
+              .filter(([, v]) => v.result === 'failure' || v.result === 'cancelled')
+              .map(([k, v]) => k + ': ' + v.result);
+            console.log(bad.join('\n'));
+          ")
+          if [ -n "$FAILED" ]; then
+            echo "Pipeline nie przeszedł:"
+            echo "$FAILED"
+            {
+              echo "### Pipeline nie przeszedł"
+              echo '```'
+              echo "$FAILED"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "Wszystkie etapy zakończone powodzeniem lub pominięte."
