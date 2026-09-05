@@ -113,15 +113,23 @@ jobs:
 
 ### Wyniki referencyjne
 
+Liczby zmierzone na `ubuntu-latest`, repozytorium publiczne (runy `33920530578`
+i `33998317276`). U Ciebie mogą się różnić o kilkanaście procent — istotne są proporcje.
+
 | | Baseline | Finał |
 |---|---|---|
-| Całkowity czas (`main`) | 3:58 | **~1:50** |
+| Całkowity czas (`main`) | 3:58 | **1:50** |
 | Czas na PR-ze | 3:58 | **~1:10** |
 | Czas do informacji o błędzie lintu | nigdy | **~35 s** |
 | Czas do informacji o błędzie unit | 3:44 | **~40 s** |
 | Wykrywa sekret w kodzie | nie | **tak** |
 | Raport przy padających testach | nie | **tak** |
 | Liczba kontroli na PR-ze | 1 | 7 |
+
+Warto zauważyć, że finałowy pipeline jest ponad dwa razy szybszy, **robiąc znacznie
+więcej**: doszedł lint, typecheck, skan bezpieczeństwa, kontrola kontraktu API,
+scalanie raportów i publikacja. Skrócenie czasu nie wzięło się z usunięcia pracy,
+tylko z ułożenia jej równolegle i we właściwej kolejności.
 
 </details>
 

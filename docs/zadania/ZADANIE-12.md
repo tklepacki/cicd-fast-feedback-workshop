@@ -150,6 +150,11 @@ z trzech przyczyn z tabeli na górze. Wyścigi i kolizje danych zostają Twoje.
 
 ## Do dyskusji
 
+- **Pomiar z referencyjnego przebiegu:** job kwarantanny okazał się **najdłuższym jobem
+  w całym pipelinie (0:58)** — mimo że nie uruchomił ani jednego testu. Pusty zestaw,
+  a pełny start kontenera i instalacja zależności. Czy pusta kwarantanna powinna w ogóle
+  startować? Jak byś to wykrył, nie wiedząc z góry, że jest pusta?
+
 - Ten warsztat znalazł cztery prawdziwe flaki w testach, które wyglądały na stabilne —
   wyszły dopiero po zmianie liczby workerów i po dodaniu opóźnienia w API. **Co to mówi
   o teście, który „przechodzi"?**
