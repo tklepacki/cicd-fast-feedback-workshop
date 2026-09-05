@@ -42,8 +42,15 @@ export default defineConfig({
 
   use: {
     baseURL,
-    // Trace everything, always. Convenient, but artifacts balloon - EXERCISE 15.
-    trace: 'on',
+    // Trace only when a test is retried. A trace is a full recording - DOM snapshots
+    // before and after every action, network, console - and recording every passing
+    // test produces hundreds of megabytes nobody will ever open.
+    //
+    // `on-first-retry` pairs with retries being enabled: a failing test is retried and
+    // that attempt is recorded. `retain-on-failure` is the alternative when retries are
+    // off - it records everything and discards traces of tests that passed, which costs
+    // run time but catches failures that do not reproduce on retry.
+    trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
 

@@ -315,6 +315,17 @@ jobs:
           path: reports/ui-*.xml
           retention-days: 1
 
+      # Traces are the heavy artifact - tens of megabytes each. Uploaded only when the
+      # job failed, and kept longer than the rest, because this is what somebody opens
+      # days later while working out what went wrong.
+      - name: Upload traces
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: traces-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 14
+
   test-ui-quarantine:
     name: Kwarantanna
     runs-on: ubuntu-latest
