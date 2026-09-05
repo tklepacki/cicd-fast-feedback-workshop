@@ -194,16 +194,31 @@ jobs:
       - run: npm run test:api
 
   test-ui:
-    name: Testy UI ${{ matrix.shard }}/4 (${{ github.event_name == 'pull_request' && 'smoke' || 'regresja' }})
+    name: UI ${{ github.event_name == 'pull_request' && 2 || 8 }} × ${{ matrix.shard }} (${{ github.event_name == 'pull_request' && 'smoke' || 'regresja' }})
     runs-on: ubuntu-latest
     needs: [build, changes]
     if: needs.changes.outputs.ui == 'true'
     strategy:
-      # Without this a single failing shard cancels the other three, and their results are
+      # Without this a single failing shard cancels the rest, and their results are
       # exactly what distinguishes one broken test from a broken suite.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        # The shard count follows the event rather than being fixed.
+        #
+        # A pull request runs the smoke suite - five tests - so four machines would spend
+        # more time starting up than testing. Main runs the full regression, where the
+        # split pays for itself.
+        #
+        # `fromJSON` is what makes this possible: a matrix cannot be computed with an
+        # expression, but it can be handed a JSON array built by one.
+        #
+        # Note that a matrix multiplies. Eight shards plus the other jobs is 13 of the
+        # 20 concurrent jobs a free account gets - and that limit counts across the whole
+        # account, not this repository.
+        shard: >-
+          ${{ fromJSON(github.event_name == 'pull_request'
+              && '[1,2]'
+              || '[1,2,3,4,5,6,7,8]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -245,7 +260,7 @@ jobs:
       # answer it in seconds. The full regression belongs on main, where its result gates
       # a release rather than a review.
       - name: UI tests
-        run: npx playwright test --project=ui-chromium --shard=${{ matrix.shard }}/4 ${{ env.GREP }}
+        run: npx playwright test --project=ui-chromium --shard=${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 2 || 8 }} ${{ env.GREP }}
         env:
           GREP: >-
             ${{ (github.event_name == 'pull_request'
