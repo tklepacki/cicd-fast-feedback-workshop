@@ -44,7 +44,7 @@ Dzięki temu można pominąć dowolne zadanie i wrócić do gry przy następnym.
 | [08](ZADANIE-08.md) | Trzy tryby uruchomienia | smoke na PR, regresja na `main`, cron |
 | [09](ZADANIE-09.md) | Selektywność | `paths-filter` i `--only-changed` |
 | [10](ZADANIE-10.md) | Równoległość | workers, potem shardowanie |
-| [11](ZADANIE-11.md) | Matrix | cross-browser selektywnie, `fromJSON` |
+| [11](ZADANIE-11.md) | Matrix dynamiczny | liczba shardów zależna od zdarzenia, `fromJSON` |
 | [12](ZADANIE-12.md) | Flaki | retry, kwarantanna, dryf środowiska |
 | [13](ZADANIE-13.md) | Scalanie raportów | `blob` + `merge-reports` |
 | [14](ZADANIE-14.md) | Raportowanie w GitHubie | JUnit, check run, Job Summary |

@@ -56,15 +56,5 @@ export default defineConfig({
       testDir: './tests/ui',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'ui-firefox',
-      testDir: './tests/ui',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'ui-webkit',
-      testDir: './tests/ui',
-      use: { ...devices['Desktop Safari'] },
-    },
   ],
 });
