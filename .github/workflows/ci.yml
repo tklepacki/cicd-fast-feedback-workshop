@@ -432,3 +432,50 @@ jobs:
       - name: Job summary
         if: always()
         run: node scripts/ci-summary.mjs reports/*.xml
+  publish-report:
+    name: Publikacja raportu
+    runs-on: ubuntu-latest
+    needs: ui-report
+    if: always()
+    steps:
+      # `secrets` is not available in a job-level `if`, so the guard lives in a step.
+      # Without it every participant who has not pasted the credentials would see a red job.
+      - name: Are the credentials configured
+        id: check
+        run: |
+          if [ -n "${R2_ACCOUNT_ID}" ] && [ -n "${R2_BUCKET}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "Brak poświadczeń R2 - pomijam publikację." >> "$GITHUB_STEP_SUMMARY"
+          fi
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+
+      - name: Download merged report
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+
+      # Plain `aws s3 sync` against an S3-compatible endpoint. That is the point of choosing
+      # R2 here: moving this to Azure Blob, S3 or GCS is a change of endpoint and credentials,
+      # not a rewrite of the pipeline.
+      - name: Upload to R2
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          PREFIX="${{ github.repository_owner }}/run-${{ github.run_number }}"
+          aws s3 sync ./playwright-report "s3://${R2_BUCKET}/${PREFIX}" \
+            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+            --only-show-errors
+          echo "### Raport UI" >> "$GITHUB_STEP_SUMMARY"
+          echo "${R2_PUBLIC_URL}/${PREFIX}/index.html" >> "$GITHUB_STEP_SUMMARY"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL: ${{ secrets.R2_PUBLIC_URL }}
