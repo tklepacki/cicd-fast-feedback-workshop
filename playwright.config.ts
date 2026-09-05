@@ -29,8 +29,15 @@ export default defineConfig({
   // `blob` is an intermediate format built to be merged. Two HTML reports cannot be
   // combined in any meaningful way, which is why sharding quietly breaks reporting
   // unless this is changed alongside it.
+  // `github` annotates the diff on a pull request, `blob` feeds the merge job, and
+  // `junit` feeds the check run. Three readers, three questions - which is why all
+  // three are here rather than one.
   reporter: process.env.CI
-    ? [['blob'], ['github']]
+    ? [
+        ['blob'],
+        ['github'],
+        ['junit', { outputFile: `reports/${process.env.REPORT_NAME ?? 'playwright'}.xml` }],
+      ]
     : [['list'], ['html', { open: 'never' }]],
 
   use: {
