@@ -1,0 +1,51 @@
+name: Setup
+description: Node, dependencies and optionally the Playwright browsers
+
+# A local composite action shares *steps* inside a job. A reusable workflow
+# (`workflow_call`) shares whole *jobs* between workflows. This repository needs the former:
+# the same four-step preamble was repeated in seven jobs.
+#
+# Note what is absent: `actions/checkout`. A local action lives in the repository, so the
+# repository has to be checked out before this action can be resolved. It can collapse the
+# three steps that follow, never the first one.
+
+inputs:
+  browser:
+    description: Playwright browser to install; empty to skip
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+
+    - run: npm ci
+      shell: bash
+
+    - name: Resolve Playwright version
+      if: inputs.browser != ''
+      id: pw
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      shell: bash
+
+    - name: Cache Playwright browsers
+      if: inputs.browser != ''
+      id: pw-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ inputs.browser }}-${{ steps.pw.outputs.version }}
+
+    - name: Install Playwright browsers
+      if: inputs.browser != '' && steps.pw-cache.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps ${{ inputs.browser }}
+      shell: bash
+
+    - name: Install browser system dependencies
+      if: inputs.browser != '' && steps.pw-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps ${{ inputs.browser }}
+      shell: bash
