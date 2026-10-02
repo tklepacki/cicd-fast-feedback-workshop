@@ -111,7 +111,7 @@ git push -u origin check-readme
 Otwórz pull request. Na liście kontroli `API tests` i `UI tests` powinny być **pominięte**
 (szara ikona, *Skipped*), a lint, testy jednostkowe, build i skan bezpieczeństwa — zielone.
 Zapisz czas całego przebiegu. Zwróć uwagę, jak GitHub oznacza pominięty job — wrócimy do tego
-w ZADANIU 14, gdzie okaże się, że *pominięty* to nie to samo co *udany*.
+w ZADANIU 14, gdzie okaże się, jak GitHub traktuje pominięte joby przy wymaganych kontrolach.
 
 **6. Sprawdź zmianę w widoku.** Utwórz gałąź:
 
