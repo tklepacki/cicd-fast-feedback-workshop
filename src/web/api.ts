@@ -52,7 +52,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export function fetchProducts(query: ProductQuery): Promise<Slice<Product>> {
   const params = new URLSearchParams();
   if (query.category) params.set('category', query.category);
-  if (query.search) params.set('search', query.search);
+  if (query.search) params.set('q', query.search);
   if (query.sort) params.set('sort', query.sort);
   if (query.limit !== undefined) params.set('limit', String(query.limit));
   if (query.offset) params.set('offset', String(query.offset));
