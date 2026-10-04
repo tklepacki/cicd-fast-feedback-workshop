@@ -141,7 +141,7 @@ export function Catalog() {
                 Brak w magazynie
               </span>
             )}
-            {product.stock > 0 && product.stock <= 3 && (
+            {product.stock > 0 && product.stock <= 1 && (
               <span className="tag tag--low-stock" data-testid="low-stock">
                 Ostatnie sztuki: {product.stock}
               </span>
