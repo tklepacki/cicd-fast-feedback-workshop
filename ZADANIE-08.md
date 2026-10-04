@@ -103,7 +103,23 @@ się nowy job `Changed files`, a `API tests` i `UI tests` czekają na niego oraz
 ```bash
 git checkout main
 git checkout -b check-readme
+```
+
+Dopisz linię do pliku — polecenie zależy od systemu.
+
+macOS, Linux albo Git Bash na Windowsie:
+
+```bash
 echo "Drobna poprawka dokumentacji." >> README.md
+```
+
+Windows, PowerShell:
+
+```powershell
+Add-Content README.md "Drobna poprawka dokumentacji."
+```
+
+```bash
 git commit -am "Update README"
 git push -u origin check-readme
 ```
