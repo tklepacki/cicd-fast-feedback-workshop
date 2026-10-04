@@ -283,6 +283,7 @@ git push</pre>
       <tr><th>Problem</th><th>Co zrobić</th></tr>
       <tr><td><code>npm ci</code> zgłasza błąd związany z wersją Node.js</td><td>Sprawdź wersję poleceniem <code>node --version</code>. Wymagana jest wersja 22 lub nowsza.</td></tr>
       <tr><td>Testy kończą się błędem <code>EADDRINUSE: address already in use :::3000</code></td><td>Port 3000 zajmuje inna aplikacja, np. serwer deweloperski innego projektu. Sprawdź, która: <code>lsof -i :3000</code> (macOS, Linux) albo <code>netstat -ano | findstr :3000</code> (Windows), i ją zatrzymaj.</td></tr>
+      <tr><td>Testy UI wiszą albo kończą się błędem, a w innym terminalu działa <code>npm run dev</code></td><td>Zatrzymaj <code>npm run dev</code> (Ctrl+C) przed uruchomieniem testów. Playwright podłącza się wtedy do już działającego serwera deweloperskiego, pod którym nie ma frontendu, zamiast uruchomić własną aplikację.</td></tr>
       <tr><td>Instalacja Playwrighta zatrzymuje się</td><td>Przyczyną może być blokada sieciowa. Spróbuj połączyć się przez inną sieć lub bez firmowego VPN.</td></tr>
       <tr><td><code>git push</code> zwraca błąd 403</td><td>Git loguje się innym kontem niż to, na którym jest repozytorium, np. firmowym. Zaloguj się właściwym kontem (<code>gh auth login</code>, a potem <code>gh auth setup-git</code>).</td></tr>
       <tr><td>Pipeline nie uruchamia się</td><td>Wróć do kroku 06 i sprawdź, czy workflowy są włączone oraz czy repozytorium jest publiczne.</td></tr>
