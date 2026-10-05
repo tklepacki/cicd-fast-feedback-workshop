@@ -8,3 +8,4 @@ Zadania pojawiają się tutaj w trakcie warsztatu. Odśwież stronę, gdy prowad
 - [ZADANIE 04 — Rozbicie na joby i `needs`](ZADANIE-04.md)
 - [ZADANIE 05 — Artefakt builda zamiast trzech buildów](ZADANIE-05.md)
 - [ZADANIE 06 — Skan bezpieczeństwa](ZADANIE-06.md)
+- [ZADANIE 07 — Trzy tryby uruchomienia: PR, main, noc](ZADANIE-07.md)
