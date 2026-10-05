@@ -10,3 +10,4 @@ Zadania pojawiają się tutaj w trakcie warsztatu. Odśwież stronę, gdy prowad
 - [ZADANIE 06 — Skan bezpieczeństwa](ZADANIE-06.md)
 - [ZADANIE 07 — Trzy tryby uruchomienia: PR, main, noc](ZADANIE-07.md)
 - [ZADANIE 08 — Selektywność na dwóch poziomach](ZADANIE-08.md)
+- [ZADANIE 09 — Równoległość: najpierw workers, potem shardowanie](ZADANIE-09.md)
