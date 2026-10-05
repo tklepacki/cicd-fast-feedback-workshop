@@ -15,3 +15,4 @@ Zadania pojawiają się tutaj w trakcie warsztatu. Odśwież stronę, gdy prowad
 - [ZADANIE 11 — Scalanie raportów z shardów](ZADANIE-11.md)
 - [ZADANIE 12 — Raportowanie w GitHubie: jeden format dla wszystkich testów](ZADANIE-12.md)
 - [ZADANIE 13 — Trace: „błąd w CI, co teraz?"](ZADANIE-13.md)
+- [ZADANIE 14 — Bramka, uprawnienia i domknięcie](ZADANIE-14.md)
