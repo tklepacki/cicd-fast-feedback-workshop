@@ -12,3 +12,4 @@ Zadania pojawiają się tutaj w trakcie warsztatu. Odśwież stronę, gdy prowad
 - [ZADANIE 08 — Selektywność na dwóch poziomach](ZADANIE-08.md)
 - [ZADANIE 09 — Równoległość: najpierw workers, potem shardowanie](ZADANIE-09.md)
 - [ZADANIE 10 — Matrix, który liczy sam siebie](ZADANIE-10.md)
+- [ZADANIE 11 — Scalanie raportów z shardów](ZADANIE-11.md)
