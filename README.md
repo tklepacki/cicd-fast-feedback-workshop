@@ -34,10 +34,10 @@ npm run dev             # aplikacja na http://localhost:5173
 
 ## Zadania i rozwiązania
 
-- **Zadania:** https://github.com/tklepacki/cicd-fast-feedback-workshop/tree/zadania
-  — pojawiają się w trakcie warsztatu, odśwież stronę po każdym bloku.
-- **Rozwiązania:** https://github.com/tklepacki/cicd-fast-feedback-workshop/branches/all?query=solution
-  — rozwiązanie każdego zadania pojawia się tu po jego omówieniu (branch `solution/zadanie-XX`).
+https://github.com/tklepacki/cicd-fast-feedback-workshop/tree/zadania
+
+Zadania pojawiają się tu w trakcie warsztatu, a po omówieniu każdego zadania — jego rozwiązanie
+(folder `ROZWIAZANIE-XX`). Odśwież stronę po każdym bloku.
 
 ## Aplikacja
 
