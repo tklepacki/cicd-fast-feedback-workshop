@@ -39,6 +39,9 @@ https://github.com/tklepacki/cicd-fast-feedback-workshop/tree/zadania
 Zadania pojawiają się tu w trakcie warsztatu, a po omówieniu każdego zadania — jego rozwiązanie
 (folder `ROZWIAZANIE-XX`). Odśwież stronę po każdym bloku.
 
+Notatki i snippety do skopiowania w trakcie warsztatu:
+https://docs.google.com/document/d/1f_k-9Ni0GIJr6L307zItp-cZwLXMsUqdRlGPVC3Gki8/edit?usp=sharing
+
 ## Aplikacja
 
 Sklep: katalog → koszyk → zamówienie. Dane żyją w pamięci procesu, więc **restart serwera
