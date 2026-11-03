@@ -52,17 +52,22 @@ git fetch https://github.com/tklepacki/cicd-fast-feedback-workshop.git "refs/hea
 git push origin "refs/remotes/warsztat/demo/*:refs/heads/demo/*"
 ```
 
-Ten push uruchomi pipeline na wszystkich pięciu branchach. Branche przydadzą się też w kolejnych zadaniach.
+Ten push uruchomi pipeline na wszystkich pięciu branchach. Pierwsze polecenie zapisuje branche także
+lokalnie, jako `warsztat/demo/…` — z nich będziesz brać zmiany w kolejnych zadaniach.
 Oba polecenia można bezpiecznie powtórzyć, jeśli coś pójdzie nie tak.
 
 Otwórz zakładkę **Actions**. Powinno tam być **pięć nowych przebiegów** na branchach `demo/…`.
 
-> **Nie ma ich albo `git push` napisał `Everything up-to-date`?** Branche demo są już w Twoim
+> **Nie ma ich albo `git push` napisał `Everything up-to-date` lub `rejected`?** Branche demo są już w Twoim
 > repozytorium — najczęściej dlatego, że przy tworzeniu z szablonu włączone było
 > „Include all branches”. GitHub nie uruchamia pipeline'u na branchach skopiowanych z szablonu.
 > Nic nie poprawiaj. Czasy z kroków 4–5 odczytaj z przebiegów w repozytorium prowadzącego:
 > https://github.com/tklepacki/cicd-fast-feedback-workshop/actions
-> Branche i tak są u Ciebie, więc kolejne zadania zadziałają bez zmian.
+> Ważne, żeby przeszło pierwsze polecenie (`git fetch`) — wtedy kolejne zadania zadziałają bez zmian.
+>
+> **`git push` napisał `refusing to allow a Personal Access Token to create or update workflow`?**
+> Twój token nie ma uprawnienia `workflow`. Uruchom `gh auth login`, potem `gh auth setup-git`,
+> i powtórz push.
 
 **4. Zmierz czas do pierwszego czerwonego sygnału.**
 
