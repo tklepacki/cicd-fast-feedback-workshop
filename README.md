@@ -29,3 +29,4 @@ W każdym folderze: `zmiany.diff` (co zmienia zadanie) i pełne wersje zmieniony
 - [Rozwiązanie ZADANIA 09](ROZWIAZANIE-09/)
 - [Rozwiązanie ZADANIA 10](ROZWIAZANIE-10/)
 - [Rozwiązanie ZADANIA 12](ROZWIAZANIE-12/)
+- [Rozwiązanie ZADANIA 13](ROZWIAZANIE-13/)

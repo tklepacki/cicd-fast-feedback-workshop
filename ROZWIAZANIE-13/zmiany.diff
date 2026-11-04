@@ -1,0 +1,32 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 52233c3..ecad86e 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -229,6 +229,14 @@ jobs:
+           path: reports/ui-*.xml
+           retention-days: 1
+ 
++      - name: Upload traces
++        uses: actions/upload-artifact@v4
++        if: failure()
++        with:
++          name: traces-${{ matrix.shard }}
++          path: test-results/
++          retention-days: 14
++
+   ui-report:
+     name: UI report
+     runs-on: ubuntu-latest
+diff --git a/playwright.config.ts b/playwright.config.ts
+index fdce3bd..687ad15 100644
+--- a/playwright.config.ts
++++ b/playwright.config.ts
+@@ -34,7 +34,7 @@ export default defineConfig({
+   use: {
+     baseURL,
+     // Trace everything, always. Convenient, but artifacts balloon - EXERCISE 13.
+-    trace: 'on',
++    trace: 'retain-on-failure',
+     screenshot: 'only-on-failure',
+   },
+ 
