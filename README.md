@@ -13,6 +13,7 @@ Zadania i rozwiązania pojawiają się tutaj w trakcie warsztatu. Odśwież stro
 - [ZADANIE 07 — Trzy tryby uruchomienia: PR, main, noc](ZADANIE-07.md)
 - [ZADANIE 08 — Selektywność na dwóch poziomach](ZADANIE-08.md)
 - [ZADANIE 09 — Równoległość: najpierw workers, potem shardowanie](ZADANIE-09.md)
+- [ZADANIE 10 — Matrix, który liczy sam siebie](ZADANIE-10.md)
 
 ## Rozwiązania
 
