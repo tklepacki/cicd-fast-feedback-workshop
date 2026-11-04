@@ -1,0 +1,71 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 32f7cf3..898fcba 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -57,6 +57,13 @@ jobs:
+       - run: npm ci
+       - run: npm run build
+ 
++      - name: Upload build
++        uses: actions/upload-artifact@v4
++        with:
++          name: dist
++          path: dist/
++          retention-days: 1
++
+   test-api:
+     name: API tests
+     runs-on: ubuntu-latest
+@@ -68,6 +75,11 @@ jobs:
+           node-version-file: .nvmrc
+           cache: npm
+       - run: npm ci
++      - name: Download build
++        uses: actions/download-artifact@v4
++        with:
++          name: dist
++          path: dist/
+       - run: npm run test:api
+ 
+   test-ui:
+@@ -97,6 +109,12 @@ jobs:
+         if: steps.pw-cache.outputs.cache-hit != 'true'
+         run: npx playwright install chromium
+ 
++      - name: Download build
++        uses: actions/download-artifact@v4
++        with:
++          name: dist
++          path: dist/
++
+       - run: npm run test:ui
+ 
+       - uses: actions/upload-artifact@v4
+diff --git a/package.json b/package.json
+index 03a330e..d0e4b51 100644
+--- a/package.json
++++ b/package.json
+@@ -21,7 +21,9 @@
+     "test:api": "playwright test --project=api",
+     "test:ui": "playwright test --project=ui-chromium",
+     "test:smoke": "playwright test --project=ui-chromium --grep @smoke",
+-    "verify": "npm run lint && npm run typecheck && npm run build && npm run test:unit"
++    "verify": "npm run lint && npm run typecheck && npm run build && npm run test:unit",
++    "test:ui:local": "npm run build && playwright test --project=ui-chromium",
++    "test:api:local": "npm run build && playwright test --project=api"
+   },
+   "dependencies": {
+     "express": "^4.22.2",
+diff --git a/playwright.config.ts b/playwright.config.ts
+index a971901..3ae3e4a 100644
+--- a/playwright.config.ts
++++ b/playwright.config.ts
+@@ -39,7 +39,7 @@ export default defineConfig({
+   webServer: process.env.BASE_URL
+     ? undefined
+     : {
+-        command: 'npm run build && npm start',
++        command: 'npm start',
+         url: 'http://localhost:3000/api/health',
+         reuseExistingServer: !process.env.CI,
+         timeout: 120_000,
