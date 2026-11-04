@@ -16,6 +16,7 @@ Zadania i rozwiązania pojawiają się tutaj w trakcie warsztatu. Odśwież stro
 
 W każdym folderze: `zmiany.diff` (co zmienia zadanie) i pełne wersje zmienionych plików.
 
+- [Rozwiązanie ZADANIA 04](ROZWIAZANIE-04/)
 - [Rozwiązanie ZADANIA 05](ROZWIAZANIE-05/)
 - [Rozwiązanie ZADANIA 06](ROZWIAZANIE-06/)
 - [Rozwiązanie ZADANIA 07](ROZWIAZANIE-07/)
