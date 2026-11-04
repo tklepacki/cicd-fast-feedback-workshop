@@ -23,3 +23,4 @@ W każdym folderze: `zmiany.diff` (co zmienia zadanie) i pełne wersje zmieniony
 - [Rozwiązanie ZADANIA 06](ROZWIAZANIE-06/)
 - [Rozwiązanie ZADANIA 07](ROZWIAZANIE-07/)
 - [Rozwiązanie ZADANIA 09](ROZWIAZANIE-09/)
+- [Rozwiązanie ZADANIA 10](ROZWIAZANIE-10/)
