@@ -1,0 +1,295 @@
+name: CI
+
+# The starting point of the workshop.
+#
+# Everything below works: it checks out the code, installs dependencies and runs all the
+# tests. It is also slow, wasteful and tells you almost nothing until it finishes.
+# Every exercise of the workshop takes one problem from this file and fixes it.
+#
+# Do not "improve" this file before EXERCISE 01. Measuring it as it stands is the exercise.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'UI test scope'
+        type: choice
+        default: smoke
+        options: [smoke, regression, all]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Changed files
+    runs-on: ubuntu-latest
+    outputs:
+      ui: ${{ steps.filter.outputs.ui }}
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ui:
+              - 'src/web/**'
+              - 'src/shared/**'
+              - 'tests/ui/**'
+              - 'playwright.config.ts'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.github/workflows/**'
+            api:
+              - 'src/server/**'
+              - 'src/shared/**'
+              - 'tests/api/**'
+              - 'playwright.config.ts'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.github/workflows/**'
+
+  quality:
+    name: Lint and typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-unit
+          path: reports/unit.xml
+          retention-days: 1
+
+  security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Known vulnerabilities in dependencies
+        run: npm audit --audit-level=high
+
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.24.0/gitleaks_8.24.0_linux_x64.tar.gz \
+            | tar -xz -C /usr/local/bin gitleaks
+
+      - name: Secrets in the repository
+        run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --log-opts="--first-parent HEAD"
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  test-api:
+    name: API tests
+    runs-on: ubuntu-latest
+    needs: [build, quality, unit, changes]
+    if: needs.changes.outputs.api == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - run: npm run test:api
+        env:
+          REPORT_NAME: api
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-api
+          path: reports/api.xml
+          retention-days: 1
+
+  test-ui:
+    name: UI tests ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 2 || 8 }} (${{ github.event_name == 'pull_request' && 'smoke' || github.event_name == 'workflow_dispatch' && inputs.suite || 'full regression' }})
+    runs-on: ubuntu-latest
+    needs: [build, quality, unit, changes]
+    if: needs.changes.outputs.ui == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: >-
+          ${{ fromJSON(github.event_name == 'pull_request'
+              && '[1,2]'
+              || '[1,2,3,4,5,6,7,8]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: UI tests
+        run: npx playwright test --project=ui-chromium --shard=${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 2 || 8 }} ${{ env.GREP }}
+        env:
+          REPORT_NAME: ui-${{ matrix.shard }}
+          GREP: >-
+            ${{ (github.event_name == 'pull_request'
+                 || (github.event_name == 'workflow_dispatch' && inputs.suite == 'smoke'))
+                && '--grep @smoke'
+             || (github.event_name == 'workflow_dispatch' && inputs.suite == 'regression')
+                && '--grep-invert @smoke'
+             || '' }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-ui-${{ matrix.shard }}
+          path: reports/ui-*.xml
+          retention-days: 1
+
+  ui-report:
+    name: UI report
+    runs-on: ubuntu-latest
+    needs: test-ui
+    if: always() && needs.test-ui.result != 'skipped'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Download all blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+
+      - name: Merge into one HTML report
+        run: npx playwright merge-reports --reporter=html ./all-blob-reports
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  test-report:
+    name: Test report
+    runs-on: ubuntu-latest
+    needs: [unit, test-api, test-ui]
+    if: always()
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Collect JUnit reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: junit-*
+          path: reports
+          merge-multiple: true
+
+      - name: Publish check run
+        uses: dorny/test-reporter@v3
+        if: always()
+        with:
+          name: Test results
+          path: reports/*.xml
+          reporter: java-junit
+          fail-on-error: true
+          use-actions-summary: false
+
+      - name: Job summary
+        if: always()
+        run: node scripts/ci-summary.mjs reports/*.xml
